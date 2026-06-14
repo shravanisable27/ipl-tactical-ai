@@ -82,18 +82,38 @@ html, body { margin:0; padding:0; }
     margin: 0.3rem 0 0.15rem;
 }
 
-/* ── Nav buttons styled as breadcrumb links ── */
+/* ── Nav row: force single horizontal row on all screen sizes ── */
+.nav-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 0 !important;
+    flex-wrap: nowrap !important;
+    overflow: visible !important;
+}
+/* Override Streamlit column stacking on mobile */
+.nav-row [data-testid="column"] {
+    min-width: 0 !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    padding: 0 !important;
+}
+.nav-row .stButton {
+    width: auto !important;
+}
 .nav-row .stButton > button {
     background: transparent !important;
     border: none !important;
     color: rgba(255,255,255,0.35) !important;
-    font-size: 0.7rem !important;
-    letter-spacing: 0.05em !important;
-    padding: 0 0.3rem 0.4rem !important;
+    font-size: clamp(0.6rem, 2.2vw, 0.75rem) !important;
+    letter-spacing: 0.04em !important;
+    padding: 0.2rem 0.5rem 0.4rem !important;
     height: auto !important;
     font-family: 'Rajdhani', sans-serif !important;
     box-shadow: none !important;
     text-decoration: none !important;
+    white-space: nowrap !important;
+    min-width: 0 !important;
 }
 .nav-row .stButton > button:hover { color: rgba(245,197,24,0.8) !important; }
 
@@ -173,7 +193,7 @@ html, body { margin:0; padding:0; }
     display:flex; flex-direction:column; align-items:center;
     justify-content:center; padding:0.2rem 0 0.6rem;
 }
-.gauge-ring { position:relative; width:240px; height:240px; }
+.gauge-ring { position:relative; }
 .gauge-ring svg { display:block; }
 .gauge-center {
     position:absolute; top:50%; left:50%;
@@ -181,12 +201,12 @@ html, body { margin:0; padding:0; }
     text-align:center; pointer-events:none;
 }
 .gauge-pct {
-    font-family:'Rajdhani',sans-serif; font-size:3.4rem; font-weight:700; line-height:1;
+    font-family:'Rajdhani',sans-serif; font-weight:700; line-height:1;
     background:linear-gradient(135deg,#f5c518,#ffe066);
     -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
 }
 .gauge-sublabel {
-    font-size:0.58rem; letter-spacing:0.14em; text-transform:uppercase;
+    letter-spacing:0.14em; text-transform:uppercase;
     color:rgba(255,255,255,0.35); margin-top:0.3rem;
 }
 .gauge-stats {
@@ -224,10 +244,46 @@ html, body { margin:0; padding:0; }
 
 /* ── Mobile ── */
 @media (max-width:768px) {
-    .main .block-container { padding:0.7rem 0.8rem 1.5rem; }
-    .ipl-title { font-size:1.35rem; }
-    .gauge-ring { width:180px; height:180px; }
-    .gauge-pct { font-size:2.5rem; }
+    .main .block-container { padding:0.6rem 0.7rem 1.5rem; }
+    .ipl-title { font-size:1.2rem; letter-spacing:0.03em; }
+
+    /* Nav: keep horizontal, prevent wrapping */
+    .nav-row { gap:0 !important; }
+    .nav-row .stButton > button {
+        font-size: 0.62rem !important;
+        padding: 0.15rem 0.35rem 0.35rem !important;
+        letter-spacing: 0.02em !important;
+    }
+
+    /* On mobile, stack left/right columns vertically and center gauge */
+    [data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child,
+    [data-testid="stHorizontalBlock"] > [data-testid="column"]:last-child {
+        width: 100% !important;
+        flex: 0 0 100% !important;
+    }
+
+    /* Gauge: responsive sizing via CSS custom property */
+    .gauge-ring {
+        width: min(72vw, 220px) !important;
+        height: min(72vw, 220px) !important;
+    }
+    .gauge-ring svg {
+        width: 100% !important;
+        height: 100% !important;
+    }
+    .gauge-pct { font-size: clamp(2rem, 10vw, 3rem) !important; }
+    .gauge-sublabel { font-size: clamp(0.45rem, 1.6vw, 0.58rem) !important; }
+    .gauge-stats { font-size: 0.68rem; }
+
+    /* Terminal readable on mobile */
+    .terminal-body { font-size: 0.68rem; line-height: 1.6; padding: 0.65rem 0.75rem; }
+    .terminal-header { font-size: 0.58rem; padding: 0.25rem 0.75rem; }
+
+    /* Slider labels slightly smaller */
+    .slider-label { font-size: 0.7rem; }
+    .val-box { font-size: 0.78rem; }
+    .player-badge { font-size: 0.68rem; }
+    .panel-header { font-size: 0.6rem; }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -283,12 +339,6 @@ def compute_win_probability(
     runs_needed: int, balls_remaining: int, wickets_left: int,
     player_sr: float, player_dot: float,
 ) -> float:
-    """
-    Compute chasing-team win probability.
-    CRR is fixed at the historical T20 average (7.0) — deriving it from RRR
-    caused systematic over-pessimism because it told the model the team was
-    already scoring at an impossibly high rate.
-    """
     if model is None or scaler is None:
         return 50.0
     if balls_remaining <= 0:
@@ -369,10 +419,12 @@ def render_gauge(probability: float) -> None:
     else:
         col, glow = "#c0392b", "rgba(192,57,43,0.45)"
 
+    # Use viewBox so SVG scales fluidly; CSS controls actual rendered size
     st.markdown(f"""
 <div class="gauge-wrap">
-  <div class="gauge-ring">
-    <svg width="240" height="240" viewBox="0 0 240 240">
+  <div class="gauge-ring" style="width:clamp(160px,40vw,240px);height:clamp(160px,40vw,240px);">
+    <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg"
+         style="width:100%;height:100%;display:block;">
       <defs>
         <filter id="gf">
           <feGaussianBlur stdDeviation="5" result="b"/>
@@ -389,8 +441,8 @@ def render_gauge(probability: float) -> None:
         style="filter:drop-shadow(0 0 8px {glow});"/>
     </svg>
     <div class="gauge-center">
-      <div class="gauge-pct">{probability:.0f}%</div>
-      <div class="gauge-sublabel">Victory<br>Probability</div>
+      <div class="gauge-pct" style="font-size:clamp(2rem,9vw,3.4rem);">{probability:.0f}%</div>
+      <div class="gauge-sublabel" style="font-size:clamp(0.44rem,1.5vw,0.58rem);">Victory<br>Probability</div>
     </div>
   </div>
 </div>
@@ -463,7 +515,13 @@ def main() -> None:
         unsafe_allow_html=True,
     )
 
-    # ── NAV BUTTONS (breadcrumb style) ─────────────────────────────────────────
+    # ── NAV BUTTONS ────────────────────────────────────────────────────────────
+    # Render nav as pure HTML buttons to guarantee single-row on all screen sizes
+    st.markdown("""
+<div style="display:flex;flex-direction:row;align-items:center;gap:0;flex-wrap:nowrap;
+            padding-bottom:0.2rem;" class="nav-row-html">
+""", unsafe_allow_html=True)
+
     st.markdown('<div class="nav-row">', unsafe_allow_html=True)
     nav_cols = st.columns([0.7, 0.9, 1.2, 7])
     with nav_cols[0]:
@@ -479,6 +537,7 @@ def main() -> None:
             st.session_state.page = "match"
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
+
     st.markdown('<hr style="margin:0.2rem 0 0.8rem;border-color:rgba(245,197,24,0.1);">', unsafe_allow_html=True)
 
     page = st.session_state.page
