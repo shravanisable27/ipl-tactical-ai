@@ -25,8 +25,7 @@ MODEL_PATH           = "ipl_model.pkl"
 SCALER_PATH          = "ipl_scaler.pkl"
 PLAYER_PROFILES_PATH = "player_profiles.csv"
 
-GEMINI_API_KEY    = os.environ.get("GEMINI_API_KEY",
-    "AQ.Ab8RN6KCbiuvkzLrHaSqasN7QOVKkVqFo4CH0opnuFgj-HeCNA")
+GEMINI_API_KEY    = st.secrets["GEMINI_API_KEY"]
 GEMINI_MODEL_NAME = os.environ.get("GEMINI_MODEL_NAME", "gemini-2.5-flash")
 
 MAX_BALLS       = 120
