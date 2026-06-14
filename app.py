@@ -21,8 +21,8 @@ import google.generativeai as genai
 from datetime import datetime, timezone
 
 # ── CONFIGURATION ──────────────────────────────────────────────────────────────
-MODEL_PATH           = "notebooks/ipl_model.pkl"
-SCALER_PATH          = "notebooks/ipl_scaler.pkl"
+MODEL_PATH           = "ipl_model.pkl"
+SCALER_PATH          = "ipl_scaler.pkl"
 PLAYER_PROFILES_PATH = "player_profiles.csv"
 
 GEMINI_API_KEY    = os.environ.get("GEMINI_API_KEY",
